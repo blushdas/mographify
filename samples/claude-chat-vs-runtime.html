@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude: Chat vs Runtime</title>
+<style>
+:root { --bg:#000; --white:#fff; --accent:#FEF09A; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); width:1080px; height:1920px; overflow:hidden; }
+.stage { position:relative; width:1080px; height:1920px; }
+
+.scene { position:absolute; inset:0; display:none; align-items:center; justify-content:center; }
+.scene.active { display:flex; }
+
+.scene-label {
+  position:absolute; top:62px; left:70px; z-index:10;
+  font-family:'Helvetica Neue',Arial,sans-serif; font-weight:700;
+  font-size:17px; letter-spacing:5px; color:#fff; opacity:0.38;
+}
+.counter {
+  position:absolute; top:58px; right:70px; z-index:10;
+  font-family:'Helvetica Neue',Arial,sans-serif; font-weight:700;
+  font-size:26px; letter-spacing:0.06em; color:var(--accent);
+}
+
+.visual { display:grid; place-items:center; width:1080px; height:1920px; }
+svg { width:1000px; height:1300px; }
+
+/* ── ENTRY ── */
+.anim  { opacity:0; transform-box:fill-box; transform-origin:center; animation:entryFade  740ms cubic-bezier(.16,1,.3,1) both paused; animation-delay:var(--d,0ms); }
+.pop   { opacity:0; transform-box:fill-box; transform-origin:center; animation:entryPop   740ms cubic-bezier(.16,1,.3,1) both paused; animation-delay:var(--d,0ms); }
+.up    { opacity:0; transform-box:fill-box; transform-origin:center; animation:entryUp    740ms cubic-bezier(.16,1,.3,1) both paused; animation-delay:var(--d,0ms); }
+.left  { opacity:0; transform-box:fill-box; transform-origin:center; animation:entryLeft  740ms cubic-bezier(.16,1,.3,1) both paused; animation-delay:var(--d,0ms); }
+.right { opacity:0; transform-box:fill-box; transform-origin:center; animation:entryRight 740ms cubic-bezier(.16,1,.3,1) both paused; animation-delay:var(--d,0ms); }
+.draw  { stroke-dasharray:1600; stroke-dashoffset:1600;               animation:entryDraw 1000ms cubic-bezier(.16,1,.3,1) both paused; animation-delay:var(--d,0ms); }
+
+.scene.active .anim  { animation-play-state:running; }
+.scene.active .pop   { animation-play-state:running; }
+.scene.active .up    { animation-play-state:running; }
+.scene.active .left  { animation-play-state:running; }
+.scene.active .right { animation-play-state:running; }
+.scene.active .draw  { animation-play-state:running; }
+
+@keyframes entryFade  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes entryPop   { from{opacity:0;transform:scale(0.74)}      to{opacity:1;transform:scale(1)} }
+@keyframes entryUp    { from{opacity:0;transform:translateY(46px)}  to{opacity:1;transform:translateY(0)} }
+@keyframes entryLeft  { from{opacity:0;transform:translateX(-56px)} to{opacity:1;transform:translateX(0)} }
+@keyframes entryRight { from{opacity:0;transform:translateX(56px)}  to{opacity:1;transform:translateX(0)} }
+@keyframes entryDraw  { to{stroke-dashoffset:0} }
+
+/* ── EXIT ── */
+.scene.exiting .anim  { animation:exitUp    1200ms cubic-bezier(.4,0,1,1) forwards !important; }
+.scene.exiting .pop   { animation:exitPop   1200ms cubic-bezier(.4,0,1,1) forwards !important; }
+.scene.exiting .up    { animation:exitUp    1200ms cubic-bezier(.4,0,1,1) forwards !important; }
+.scene.exiting .left  { animation:exitLeft  1200ms cubic-bezier(.4,0,1,1) forwards !important; }
+.scene.exiting .right { animation:exitRight 1200ms cubic-bezier(.4,0,1,1) forwards !important; }
+.scene.exiting .draw  { animation:exitDraw  1000ms cubic-bezier(.4,0,1,1) forwards !important; }
+
+@keyframes exitUp    { from{opacity:1;transform:translateY(0)}    to{opacity:0;transform:translateY(-28px)} }
+@keyframes exitPop   { from{opacity:1;transform:scale(1)}         to{opacity:0;transform:scale(0.78)} }
+@keyframes exitLeft  { from{opacity:1;transform:translateX(0)}    to{opacity:0;transform:translateX(-60px)} }
+@keyframes exitRight { from{opacity:1;transform:translateX(0)}    to{opacity:0;transform:translateX(60px)} }
+@keyframes exitDraw  { from{stroke-dashoffset:0;opacity:1}        to{stroke-dashoffset:1600;opacity:0} }
+
+/* ── IDLE BREATH (added via JS after entry) ── */
+[data-pulse] { transform-box:fill-box; transform-origin:center; }
+.idle-pulse  { animation:idlePulse 3.8s ease-in-out infinite !important; }
+@keyframes idlePulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+</style>
+</head>
+<body>
+<main class="stage">
+
+
+<!-- ══════════════════════════
+     SCENE 0 — HOOK
+══════════════════════════ -->
+<section class="scene active" data-scene="0">
+  <div class="scene-label">HOOK</div>
+  <div class="counter">1/5</div>
+  <div class="visual">
+    <svg viewBox="0 0 1000 1300" role="img" aria-hidden="true">
+
+      <text class="anim" style="--d:0ms"
+        x="500" y="180" text-anchor="middle"
+        fill="#fff" fill-opacity="0.32"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="22" letter-spacing="7">YOU ARE HOLDING</text>
+
+      <text class="up" style="--d:220ms"
+        x="500" y="390" text-anchor="middle"
+        fill="#fff"
+        font-family="Georgia,serif" font-style="italic" font-size="110">the best AI</text>
+
+      <text class="up" style="--d:480ms"
+        x="500" y="510" text-anchor="middle"
+        fill="#fff"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="76">IN THE WORLD</text>
+
+      <!-- accent breath line -->
+      <line class="draw" style="--d:780ms" data-pulse
+        x1="240" y1="600" x2="760" y2="600"
+        stroke="#FEF09A" stroke-width="3"/>
+
+      <text class="up" style="--d:1000ms"
+        x="500" y="740" text-anchor="middle"
+        fill="#FEF09A"
+        font-family="Georgia,serif" font-style="italic" font-size="54"
+        >and using it like Google.</text>
+
+    </svg>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════
+     SCENE 1 — PREMISE
+══════════════════════════ -->
+<section class="scene" data-scene="1">
+  <div class="scene-label">PREMISE</div>
+  <div class="counter">2/5</div>
+  <div class="visual">
+    <svg viewBox="0 0 1000 1300" role="img" aria-hidden="true">
+
+      <text class="anim" style="--d:0ms"
+        x="500" y="180" text-anchor="middle"
+        fill="#fff" fill-opacity="0.32"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="22" letter-spacing="7">THE TRUTH</text>
+
+      <!-- ghosted wrong belief -->
+      <text class="pop" style="--d:200ms"
+        x="500" y="360" text-anchor="middle"
+        fill="#fff" fill-opacity="0.18"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="90">CHAT APP</text>
+
+      <!-- strike -->
+      <line class="draw" style="--d:600ms"
+        x1="130" y1="318" x2="870" y2="318"
+        stroke="#fff" stroke-width="4" stroke-opacity="0.4"/>
+
+      <!-- arrow -->
+      <text class="anim" style="--d:880ms"
+        x="500" y="460" text-anchor="middle"
+        fill="#fff" fill-opacity="0.4"
+        font-family="'Helvetica Neue',Arial,sans-serif" font-size="46">↓</text>
+
+      <!-- the truth, accent + data-pulse -->
+      <text class="pop" style="--d:1060ms" data-pulse
+        x="500" y="650" text-anchor="middle"
+        fill="#FEF09A"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="112">A RUNTIME.</text>
+
+      <text class="up" style="--d:1560ms"
+        x="500" y="778" text-anchor="middle"
+        fill="#fff" fill-opacity="0.48"
+        font-family="Georgia,serif" font-style="italic" font-size="36"
+        >Same model. Different thinking.</text>
+
+    </svg>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════
+     SCENE 2 — THE DIVIDE
+══════════════════════════ -->
+<section class="scene" data-scene="2">
+  <div class="scene-label">THE DIVIDE</div>
+  <div class="counter">3/5</div>
+  <div class="visual">
+    <svg viewBox="0 0 1000 1300" role="img" aria-hidden="true">
+
+      <!-- vertical divider -->
+      <line class="draw" style="--d:80ms"
+        x1="500" y1="180" x2="500" y2="640"
+        stroke="#fff" stroke-width="1" stroke-opacity="0.18"/>
+
+      <!-- LEFT: CHAT -->
+      <text class="left" style="--d:260ms"
+        x="250" y="440" text-anchor="middle"
+        fill="#fff" fill-opacity="0.28"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="108">CHAT</text>
+
+      <text class="left" style="--d:420ms"
+        x="250" y="520" text-anchor="middle"
+        fill="#fff" fill-opacity="0.22"
+        font-family="Georgia,serif" font-style="italic" font-size="32">users</text>
+
+      <!-- RIGHT: BUILD — accent + data-pulse -->
+      <text class="right" style="--d:260ms" data-pulse
+        x="750" y="440" text-anchor="middle"
+        fill="#FEF09A"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="108">BUILD</text>
+
+      <text class="right" style="--d:420ms"
+        x="750" y="520" text-anchor="middle"
+        fill="#FEF09A" fill-opacity="0.62"
+        font-family="Georgia,serif" font-style="italic" font-size="32">builders</text>
+
+      <!-- thin separator -->
+      <line class="draw" style="--d:680ms"
+        x1="120" y1="640" x2="880" y2="640"
+        stroke="#fff" stroke-width="1" stroke-opacity="0.16"/>
+
+      <text class="up" style="--d:900ms"
+        x="500" y="780" text-anchor="middle"
+        fill="#fff" fill-opacity="0.60"
+        font-family="Georgia,serif" font-style="italic" font-size="42"
+        >Same model. Opposite outcomes.</text>
+
+    </svg>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════
+     SCENE 3 — THE PARADOX
+══════════════════════════ -->
+<section class="scene" data-scene="3">
+  <div class="scene-label">THE PARADOX</div>
+  <div class="counter">4/5</div>
+  <div class="visual">
+    <svg viewBox="0 0 1000 1300" role="img" aria-hidden="true">
+
+      <text class="anim" style="--d:0ms"
+        x="500" y="180" text-anchor="middle"
+        fill="#fff" fill-opacity="0.32"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="22" letter-spacing="7">THE PARADOX</text>
+
+      <!-- massive number -->
+      <text class="pop" style="--d:200ms"
+        x="500" y="500" text-anchor="middle"
+        fill="#fff"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="200">10×</text>
+
+      <text class="anim" style="--d:680ms"
+        x="500" y="580" text-anchor="middle"
+        fill="#fff" fill-opacity="0.42"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="22" letter-spacing="7">OUTPUT</text>
+
+      <!-- accent line — data-pulse -->
+      <line class="draw" style="--d:900ms" data-pulse
+        x1="240" y1="650" x2="760" y2="650"
+        stroke="#FEF09A" stroke-width="3"/>
+
+      <text class="up" style="--d:1100ms"
+        x="500" y="790" text-anchor="middle"
+        fill="#FEF09A"
+        font-family="Georgia,serif" font-style="italic" font-size="56"
+        >from fewer prompts.</text>
+
+      <text class="up" style="--d:1400ms"
+        x="500" y="886" text-anchor="middle"
+        fill="#fff" fill-opacity="0.40"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="26"
+        >Build systems. Supervise output.</text>
+
+    </svg>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════
+     SCENE 4 — WHY IT MATTERS
+══════════════════════════ -->
+<section class="scene" data-scene="4">
+  <div class="scene-label">WHY IT MATTERS</div>
+  <div class="counter">5/5</div>
+  <div class="visual">
+    <svg viewBox="0 0 1000 1300" role="img" aria-hidden="true">
+
+      <text class="anim" style="--d:0ms"
+        x="500" y="180" text-anchor="middle"
+        fill="#fff" fill-opacity="0.32"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="22" letter-spacing="7">YOUR LIMIT</text>
+
+      <text class="up" style="--d:220ms"
+        x="500" y="380" text-anchor="middle"
+        fill="#fff"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="88">ISN'T THE</text>
+
+      <text class="up" style="--d:400ms"
+        x="500" y="490" text-anchor="middle"
+        fill="#fff"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="88">MODEL.</text>
+
+      <!-- thick accent bar — data-pulse -->
+      <rect class="pop" style="--d:720ms" data-pulse
+        x="100" y="550" width="800" height="10" rx="5"
+        fill="#FEF09A"/>
+
+      <text class="up" style="--d:960ms"
+        x="500" y="706" text-anchor="middle"
+        fill="#FEF09A"
+        font-family="Georgia,serif" font-style="italic" font-size="70"
+        >It's the tooling.</text>
+
+      <text class="up" style="--d:1300ms"
+        x="500" y="822" text-anchor="middle"
+        fill="#fff" fill-opacity="0.40"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-weight="700" font-size="26" letter-spacing="3"
+        >CLAUDE CODE IS FREE.</text>
+
+    </svg>
+  </div>
+</section>
+
+
+</main>
+<script>
+const DURATION     = 10000;
+const EXIT_DURATION = 1200;
+const PULSE_DELAY  = 2600;
+
+let currentIdx = 0;
+const scenes = document.querySelectorAll('.scene');
+const total  = scenes.length;
+let pulseTimeout = null;
+
+function activatePulse(sceneEl) {
+  pulseTimeout = setTimeout(() => {
+    // Lock draw elements so switching animation doesn't reset dash offset
+    sceneEl.querySelectorAll('.draw').forEach(el => {
+      el.style.strokeDashoffset = '0';
+    });
+    const el = sceneEl.querySelector('[data-pulse]');
+    if (el) el.classList.add('idle-pulse');
+  }, PULSE_DELAY);
+}
+
+function startExit() {
+  if (pulseTimeout) clearTimeout(pulseTimeout);
+  const cur = scenes[currentIdx];
+  cur.querySelectorAll('.idle-pulse').forEach(el => el.classList.remove('idle-pulse'));
+  cur.classList.add('exiting');
+  setTimeout(() => {
+    cur.classList.remove('active', 'exiting');
+    currentIdx = (currentIdx + 1) % total;
+    const next = scenes[currentIdx];
+    next.classList.add('active');
+    activatePulse(next);
+  }, EXIT_DURATION);
+}
+
+activatePulse(scenes[0]);
+let timer = setInterval(startExit, DURATION);
+window._mographStop = () => clearInterval(timer);
+
+document.addEventListener('keydown', e => {
+  const go = (dir) => {
+    clearInterval(timer);
+    if (pulseTimeout) clearTimeout(pulseTimeout);
+    scenes[currentIdx].classList.remove('active', 'exiting');
+    scenes[currentIdx].querySelectorAll('.idle-pulse').forEach(el => el.classList.remove('idle-pulse'));
+    currentIdx = (currentIdx + dir + total) % total;
+    scenes[currentIdx].classList.add('active');
+    activatePulse(scenes[currentIdx]);
+    timer = setInterval(startExit, DURATION);
+  };
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  if (e.key === 'r' || e.key === 'R') {
+    clearInterval(timer);
+    if (pulseTimeout) clearTimeout(pulseTimeout);
+    scenes[currentIdx].classList.remove('active', 'exiting');
+    scenes[currentIdx].querySelectorAll('.idle-pulse').forEach(el => el.classList.remove('idle-pulse'));
+    currentIdx = 0;
+    scenes[0].classList.add('active');
+    activatePulse(scenes[0]);
+    timer = setInterval(startExit, DURATION);
+  }
+});
+</script>
+</body>
+</html>

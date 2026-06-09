@@ -1,0 +1,19 @@
+{
+  "name": "mographify",
+  "version": "1.0.0",
+  "description": "Content brief → animated mograph → 1080×1920 60fps MP4",
+  "bin": {
+    "mographify": "./bin/mographify.js"
+  },
+  "scripts": {
+    "test": "node bin/mographify.js --help"
+  },
+  "keywords": ["mograph", "motion-graphics", "video", "instagram", "reels", "claude", "ai"],
+  "author": "blushdas",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blushdas/mographify.git"
+  }
+}
